@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Torneo Predizioni — Mondiale 2026</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .progress-bar-wrap {
+      height: 4px; background: var(--border); border-radius: 2px;
+      margin-bottom: 16px; overflow: hidden;
+    }
+    .progress-bar-fill { height: 100%; background: var(--accent); transition: width .3s; width: 0%; }
+    .progress-text { font-size: .78rem; color: var(--text-dim); margin-bottom: 16px; }
+    .save-status { font-size: .8rem; color: var(--text-dim); margin-left: 12px; }
+    .bracket-not-ready {
+      text-align: center; padding: 60px 20px;
+      color: var(--text-dim); font-size: 1rem;
+    }
+    .bracket-not-ready .big-emoji { font-size: 3rem; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="site-header">
+  <h1>⚽ Mondiale 2026 — Predizioni</h1>
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <span id="user-name-display" style="font-size:.9rem;color:var(--text-dim)"></span>
+    <span id="user-uid"></span>
+    <nav class="nav-links">
+      <a href="leaderboard.html">🏆 Classifica</a>
+    </nav>
+  </div>
+</header>
+
+<!-- Name modal -->
+<div id="name-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h2>👋 Benvenuto!</h2>
+    <p>Inserisci il tuo nome per partecipare al torneo di predizioni del Mondiale 2026.</p>
+    <div class="field">
+      <label>Il tuo nome</label>
+      <input type="text" id="name-input" placeholder="Es. Mario Rossi" maxlength="40"
+             onkeydown="if(event.key==='Enter') handleNameSubmit()">
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="handleNameSubmit()">
+      Inizia a compilare! →
+    </button>
+  </div>
+</div>
+
+<!-- Loading overlay -->
+<div id="loading-overlay" style="padding:80px;text-align:center">
+  <div class="spinner" style="width:40px;height:40px;margin:0 auto 16px"></div>
+  <div style="color:var(--text-dim)">Caricamento...</div>
+</div>
+
+<!-- Main page -->
+<main class="page" id="bracket-content" style="display:none">
+
+  <!-- Lock banner -->
+  <div id="lock-banner" style="display:none"></div>
+
+  <!-- Progress -->
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progress-bar"></div>
+  </div>
+  <div style="display:flex;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+    <div class="progress-text" id="progress-text">0/32 partite compilate</div>
+    <div class="save-status" id="save-status"></div>
+    <div style="margin-left:auto;display:flex;gap:8px;">
+      <a href="leaderboard.html" class="btn btn-ghost" style="font-size:.85rem">🏆 Classifica</a>
+    </div>
+  </div>
+
+  <!-- Bracket not ready -->
+  <div id="bracket-placeholder" class="bracket-not-ready" style="display:none">
+    <div class="big-emoji">⏳</div>
+    <p>Il tabellone non è ancora stato configurato dall'admin.<br>Torna tra poco!</p>
+  </div>
+
+  <!-- ── Desktop Bracket ────────────────────────────── -->
+  <div class="bracket-wrapper">
+    <div class="bracket" id="desktop-bracket"></div>
+  </div>
+
+  <!-- ── Mobile Bracket ────────────────────────────── -->
+  <div class="mobile-view" id="mobile-view"></div>
+
+  <!-- ── Special matches (3rd place + Final) ─────── -->
+  <div class="special-matches" id="special-matches" style="margin-top:28px"></div>
+
+  <!-- ── Bonus section ────────────────────────────── -->
+  <section class="bonus-section" style="margin-top:32px">
+    <h2>🏅 Premi Speciali</h2>
+    <p class="subtitle">5 punti per ogni risposta esatta (confronto case-insensitive). Scrivi il cognome o il nome completo.</p>
+    <div class="bonus-grid">
+      <div class="bonus-field field">
+        <label>🏆 MVP del Torneo</label>
+        <input type="text" id="bonus-mvp" placeholder="Es. Mbappé" oninput="onBonusChange()">
+        <div class="hint">Miglior giocatore del torneo</div>
+      </div>
+      <div class="bonus-field field">
+        <label>⭐ Miglior Giovane (U21)</label>
+        <input type="text" id="bonus-youngPlayer" placeholder="Es. Yamal" oninput="onBonusChange()">
+        <div class="hint">Under 21 migliore del torneo</div>
+      </div>
+      <div class="bonus-field field">
+        <label>🧤 Miglior Portiere</label>
+        <input type="text" id="bonus-keeper" placeholder="Es. Martinez" oninput="onBonusChange()">
+        <div class="hint">Guanto d'Oro del torneo</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Confirm button -->
+  <div style="margin-top:28px;text-align:center">
+    <button class="btn btn-primary" style="font-size:1.1rem;padding:14px 40px" onclick="confirmPredictions()">
+      ✅ Conferma Predizioni
+    </button>
+    <div id="confirm-msg" style="margin-top:12px;font-size:.9rem;color:var(--text-dim)"></div>
+  </div>
+
+  <!-- Scoring legend -->
+  <section style="margin-top:28px;padding:20px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;font-size:.85rem">
+    <div class="section-title" style="margin-bottom:12px">Punteggio</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px 24px;color:var(--text-dim)">
+      <div>Turno dei 32: <strong style="color:var(--text)">1 pt</strong></div>
+      <div>Ottavi: <strong style="color:var(--text)">2 pt</strong></div>
+      <div>Quarti: <strong style="color:var(--text)">4 pt</strong></div>
+      <div>Semifinali: <strong style="color:var(--text)">8 pt</strong></div>
+      <div>3° posto: <strong style="color:var(--text)">8 pt</strong></div>
+      <div>Finalista: <strong style="color:var(--text)">16 pt</strong></div>
+      <div>🏆 Campione: <strong style="color:var(--accent)">32 pt</strong></div>
+      <div>Premi speciali: <strong style="color:var(--text)">5 pt cad.</strong></div>
+    </div>
+    <div style="margin-top:8px;color:var(--text-dim)">Massimo teorico: <strong style="color:var(--text)">135 punti</strong></div>
+  </section>
+
+</main>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+<!-- Firebase config — REPLACE WITH YOUR PROJECT CONFIG -->
+<script>
+  firebase.initializeApp({
+    apiKey:            "AIzaSyBhzzbQSWKwcLBstYlvUsC3xmPSrgF5uw4",
+    authDomain:        "copa-del-mundo-41046.firebaseapp.com",
+    databaseURL:       "https://copa-del-mundo-41046-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId:         "copa-del-mundo-41046",
+    storageBucket:     "copa-del-mundo-41046.firebasestorage.app",
+    messagingSenderId: "669966975970",
+    appId:             "1:669966975970:web:bf9fd589a774b995846fbb"
+  });
+</script>
+
+<!-- App scripts -->
+<script src="common.js"></script>
+<script src="app.js"></script>
+<script>
+  window.addEventListener('load', init);
+
+  // Handle resize: redraw SVG connectors
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      const wrap = document.getElementById('desktop-bracket');
+      const svg  = document.getElementById('bracket-svg');
+      if (wrap && svg) drawConnectors(wrap, svg);
+    }, 150);
+  });
+</script>
+</body>
+</html>

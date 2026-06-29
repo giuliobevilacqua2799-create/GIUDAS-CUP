@@ -1,0 +1,36 @@
+{
+  "rules": {
+    "config": {
+      ".read": true,
+      "adminUid": {
+        ".write": "!data.exists()"
+      },
+      "$other": {
+        ".write": "auth != null && root.child('config/adminUid').val() === auth.uid"
+      }
+    },
+    "teams": {
+      ".read": true,
+      ".write": "auth != null && root.child('config/adminUid').val() === auth.uid"
+    },
+    "results": {
+      ".read": true,
+      ".write": "auth != null && root.child('config/adminUid').val() === auth.uid"
+    },
+    "predictions": {
+      ".read": "auth != null && root.child('config/adminUid').val() === auth.uid",
+      "$userId": {
+        ".read":  "auth != null && (auth.uid === $userId || root.child('config/adminUid').val() === auth.uid)",
+        ".write": "auth != null && auth.uid === $userId && root.child('config/locked').val() !== true",
+        "meta": {
+          "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 50" }
+        },
+        "bonuses": {
+          "mvp":        { ".validate": "newData.isString() && newData.val().length <= 100" },
+          "bestYoung":  { ".validate": "newData.isString() && newData.val().length <= 100" },
+          "bestKeeper": { ".validate": "newData.isString() && newData.val().length <= 100" }
+        }
+      }
+    }
+  }
+}
